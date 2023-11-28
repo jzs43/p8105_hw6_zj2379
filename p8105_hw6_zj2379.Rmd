@@ -1,0 +1,44 @@
+---
+title: "p8105_hw6_zj2379"
+author: "Zheshu Jiang"
+date: "2023-11-28"
+output: github_document
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(viridis)
+```
+# Problem 0
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2022-01-01",
+    date_max = "2022-12-31") |>
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |>
+  select(name, id, everything())
+```
+
+# Problem 1
+```{r}
+homicide_df = 
+  read_csv("homicide-data.csv", na = c("", "NA", "Unknown")) |> 
+  mutate(
+    city_state = str_c(city, state, sep = ", "),
+    resolution = case_when(
+      disposition == "Closed without arrest" ~ 0,
+      disposition == "Open/No arrest"        ~ 0,
+      disposition == "Closed by arrest"      ~ 1),
+    victim_age = as.numeric(victim_age))|>
+  filter(victim_race == "Black" | victim_race == "White")|> 
+  filter(!(city_state %in% c("Tulsa, AL", "Dallas, TX", "Phoenix, AZ", "Kansas City, MO"))) |> 
+  select(city_state, resolution, victim_age, victim_sex, victim_race)
+
+ 
+```
+
