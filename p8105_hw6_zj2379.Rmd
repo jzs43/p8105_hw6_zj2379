@@ -54,7 +54,7 @@ baltimore_data |>
   select(OR, OR_CI_lower, OR_CI_upper) |>
   knitr::kable(digits = 3)
 ```
-
+Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing male victims to female victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
 ```{r q1_glm_all_cities}
 model_results = 
   homicide_df |> 
@@ -85,3 +85,41 @@ model_results |>
   geom_errorbar(aes(ymin = OR_CI_lower, ymax = OR_CI_upper)) + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
+
+## Problem 2
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2022-01-01",
+    date_max = "2022-12-31") |>
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |>
+  select(name, id, everything())
+```
+ We’ll focus on a simple linear regression with tmax as the response with tmin and prcp as the predictors, and are interested in the distribution of two quantities estimated from these data:
+```{r}
+slr_weather_df <- weather_df |>
+  lm(tmax ~ tmin + prcp, data = _) |>
+  broom::tidy()|>
+  mutate(log=log(estimate[2] * estimate[3]))
+
+```
+```{r}
+boot_sample = function(df) {
+   sample_frac(df, replace = TRUE)
+}
+## construct a simple linear regression 
+slr_weather_df <- weather_df |>
+  lm(tmax ~ tmin + prcp, data = _) 
+# extract the r^2
+r_squared= slr_weather_df |>broom::glance()|>pull(r.squared)
+# extract the log(estimated beta1 + estimated beta2)
+log_product=slr_weather_df |> broom::tidy() |>
+  filter(term != "(Intercept)") |>
+  summarise(log_product = log(prod(estimate)))
+```
+
