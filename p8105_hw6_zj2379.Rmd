@@ -101,17 +101,8 @@ weather_df =
   select(name, id, everything())
 ```
  We’ll focus on a simple linear regression with tmax as the response with tmin and prcp as the predictors, and are interested in the distribution of two quantities estimated from these data:
-```{r}
-slr_weather_df <- weather_df |>
-  lm(tmax ~ tmin + prcp, data = _) |>
-  broom::tidy()|>
-  mutate(log=log(estimate[2] * estimate[3]))
 
-```
 ```{r}
-boot_sample = function(df) {
-   sample_frac(df, replace = TRUE)
-}
 ## construct a simple linear regression 
 slr_weather_df <- weather_df |>
   lm(tmax ~ tmin + prcp, data = _) 
@@ -123,3 +114,33 @@ log_product=slr_weather_df |> broom::tidy() |>
   summarise(log_product = log(prod(estimate)))
 ```
 
+
+```{r}
+## bootstrap
+boot_sample = function(df) {
+   sample_frac(df, replace = TRUE)
+}
+
+boot_straps = 
+  tibble(strap_number = 1:200) |> 
+  mutate(
+    strap_sample = map(strap_number, \(i) boot_sample(df = weather_df))
+  )
+
+bootstrap_results = 
+  boot_straps |> 
+  mutate(
+    models = map(strap_sample, \(df) lm(tmax ~ tmin + prcp, data = weather_df) ),
+    results = map(models, broom::tidy),
+  glance = map(models, broom::glance))|> 
+  select(-strap_sample, -models) |> 
+  unnest(results)
+
+log_product=bootstrap_results|>
+group_by(strap_number)|>
+  filter(term != "(Intercept)")|>
+  summarize(estimate_product = prod(estimate))|>
+  mutate(log_estimate_product = log(estimate_product))
+
+r_squared_values <- bootstrap_results |>select(glance)|>unnest(glance)|>select(r.squared)
+```
