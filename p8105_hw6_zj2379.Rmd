@@ -38,7 +38,50 @@ homicide_df =
   filter(victim_race == "Black" | victim_race == "White")|> 
   filter(!(city_state %in% c("Tulsa, AL", "Dallas, TX", "Phoenix, AZ", "Kansas City, MO"))) |> 
   select(city_state, resolution, victim_age, victim_sex, victim_race)
+```
+Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
+```{r}
+baltimore_data= homicide_df |> filter(city_state=="Baltimore, MD")|>
+  glm(resolution ~ victim_age + victim_sex + victim_race, family = binomial(), data = _)
 
- 
+baltimore_data |> 
+  broom::tidy() |> 
+  mutate(
+    OR = exp(estimate), 
+    OR_CI_upper = exp(estimate + 1.96 * std.error),
+    OR_CI_lower = exp(estimate - 1.96 * std.error)) |> 
+  filter(term == "victim_sexMale") |> 
+  select(OR, OR_CI_lower, OR_CI_upper) |>
+  knitr::kable(digits = 3)
 ```
 
+```{r q1_glm_all_cities}
+model_results = 
+  homicide_df |> 
+  nest(data = -city_state) |> 
+  mutate(
+    models = map(data, \(df) glm(resolution ~ victim_age + victim_sex + victim_race, 
+                             family = binomial(), data = df)),
+    tidy_models = map(models, broom::tidy)) |> 
+  select(-models, -data) |> 
+  unnest(cols = tidy_models) |> 
+  mutate(
+    OR = exp(estimate), 
+    OR_CI_upper = exp(estimate + 1.96 * std.error),
+    OR_CI_lower = exp(estimate - 1.96 * std.error)) |> 
+  filter(term == "victim_sexMale") |> 
+  select(city_state, OR, OR_CI_lower, OR_CI_upper)
+
+model_results |>
+  slice(1:5) |> 
+  knitr::kable(digits = 3)
+```
+
+```{r q1_plot}
+model_results |> 
+  mutate(city_state = fct_reorder(city_state, OR)) |> 
+  ggplot(aes(x = city_state, y = OR)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = OR_CI_lower, ymax = OR_CI_upper)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
