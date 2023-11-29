@@ -7,6 +7,9 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(viridis)
+library(dplyr)
+library(ggplot2)
+library(modelr)
 ```
 # Problem 0
 
@@ -144,3 +147,31 @@ group_by(strap_number)|>
 
 r_squared_values <- bootstrap_results |>select(glance)|>unnest(glance)|>select(r.squared)
 ```
+# Problem 3
+```{r}
+birthweight=
+  read_csv("birthweight.csv")|>
+  mutate(
+    across(c(babysex, frace, malform, mrace, parity), as.factor)
+  )|>
+  drop_na()
+```
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
+```{r}
+reg_1=lm(bwt ~  delwt + fincome + frace + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppwt +  menarche + gaweeks + smoken, data = birthweight)
+summary(reg_1)
+```
+
+
+```{r}
+birthweight <- birthweight |>
+  add_predictions(reg_1, var = "fitted_values") |>
+  add_residuals(reg_1, var = "residuals")
+
+ggplot(birthweight, aes(x = fitted_values, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(x = "Fitted Values", y = "Residuals") +
+  theme_minimal()
+```
+
