@@ -158,7 +158,7 @@ birthweight=
 ```
 Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
 ```{r}
-reg_1=lm(bwt ~  delwt + fincome + frace + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppwt +  menarche + gaweeks + smoken, data = birthweight)
+reg_1=lm(bwt ~ blength + bhead + smoken + wtgain + babysex + delwt + fincome + frace + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppwt +  menarche + gaweeks + smoken, data = birthweight)
 summary(reg_1)
 ```
 
@@ -174,4 +174,36 @@ ggplot(birthweight, aes(x = fitted_values, y = residuals)) +
   labs(x = "Fitted Values", y = "Residuals") +
   theme_minimal()
 ```
+From the plot, the residuals scatter around 0.
 
+```{r}
+reg_2=lm(bwt ~ blength+ gaweeks, data = birthweight)
+summary(reg_2)
+
+reg_3=lm(bwt ~ bhead+ blength+ babysex+ bhead * blength + bhead * babysex + blength * babysex, data = birthweight)
+summary(reg_3)
+```
+```{r}
+cv_df = 
+  crossv_mc(birthweight, 100) 
+
+cv_df |> pull(train) |> nth(1) |> as_tibble()
+cv_df |> pull(test) |> nth(1) |> as_tibble()
+
+cv_df =
+  cv_df |> 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble))
+
+cv_df = 
+  cv_df |> 
+  mutate(
+    reg_1  = map(train, \(df) lm(bwt ~ blength + bhead + smoken + wtgain + babysex + delwt + fincome + frace + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppwt +  menarche + gaweeks + smoken, data = birthweight)),
+    reg_2  = map(train, \(df) lm(bwt ~ blength+ gaweeks, data = birthweight)),
+    reg_3  = map(train, \(df)lm(bwt ~ bhead+ blength+ babysex+ bhead * blength + bhead * babysex + blength * babysex, data = birthweight))) |> 
+  mutate(
+    reg_1 = map2_dbl(reg_1, test, \(mod, df) rmse(model = mod, data = df)),
+    reg_2 = map2_dbl(reg_2, test, \(mod, df) rmse(model = mod, data = df)),
+    reg_3 = map2_dbl(reg_3, test, \(mod, df) rmse(model = mod, data = df)))
+```
