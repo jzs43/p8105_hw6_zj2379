@@ -167,6 +167,19 @@ prop_valid_log =
 fraction = nrow(prop_valid_log)/5000
 fraction
 ```
+```{r}
+# construct a CI for log(estimated beta1*estimated beta2)
+log_product|>
+  pull(log_estimate_product)|>
+  quantile(c(0.025, 0.975), na.rm = TRUE)
+```
+
+```{r}
+# construct a CI for r^2
+r_squared_values|>
+  pull(r_squared)|>
+  quantile(c(0.025, 0.975), na.rm = TRUE)
+```
 
 # Problem 3
 ```{r}
