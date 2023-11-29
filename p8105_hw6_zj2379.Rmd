@@ -126,27 +126,34 @@ boot_sample = function(df) {
 
 boot_straps = 
   tibble(strap_number = 1:200) |> 
-  mutate(
-    strap_sample = map(strap_number, \(i) boot_sample(df = weather_df))
-  )
-
-bootstrap_results = 
-  boot_straps |> 
-  mutate(
-    models = map(strap_sample, \(df) lm(tmax ~ tmin + prcp, data = weather_df) ),
+   mutate(
+    strap_sample = map(strap_number, \(i) boot_sample(weather_df)),
+    models = map(strap_sample, \(df) lm(tmax ~ tmin + prcp, data = df)),
     results = map(models, broom::tidy),
-  glance = map(models, broom::glance))|> 
-  select(-strap_sample, -models) |> 
+    r_squared = map_dbl(models, \(model) summary(model)$r.squared)
+  ) |> 
+  select(strap_number, results,r_squared) |> 
   unnest(results)
 
-log_product=bootstrap_results|>
-group_by(strap_number)|>
-  filter(term != "(Intercept)")|>
+log_product=boot_straps|> 
+  filter(term!="(Intercept")|>
+  group_by(strap_number)|>
   summarize(estimate_product = prod(estimate))|>
   mutate(log_estimate_product = log(estimate_product))
 
-r_squared_values <- bootstrap_results |>select(glance)|>unnest(glance)|>select(r.squared)
+r_squared_values=boot_straps|>select(r_squared)
 ```
+boot_results = 
+  tibble(strap_number = 1:5000) |> 
+  mutate(
+    strap_sample = map(strap_number, \(i) boot_sample(weather_df)),
+    models = map(strap_sample, \(df) lm(tmax ~ tmin + prcp, data = df)),
+    results = map(models, broom::tidy),
+    r_squared = map_dbl(models, \(model) summary(model)$r.squared)
+  ) |> 
+  select(strap_number, results,r_squared) |> 
+  unnest(results)
+  
 # Problem 3
 ```{r}
 birthweight=
@@ -224,17 +231,7 @@ cv_results |>
   summarize(m_rmse = mean(rmse))
 ```
 
-```{r}
-cv_results  |> 
-  select(starts_with("rmse")) |> 
-  pivot_longer(
-    everything(),
-    names_to = "model", 
-    values_to = "rmse",
-    names_prefix = "rmse_") |> 
-  mutate(model = fct_inorder(model)) |> 
-  ggplot(aes(x = model, y = rmse)) + geom_violin()
-```
+
 ```{r}
 cv_results |> 
   select(starts_with("rmse")) |> 
