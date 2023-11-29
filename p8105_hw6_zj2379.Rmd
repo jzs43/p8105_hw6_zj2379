@@ -125,7 +125,7 @@ boot_sample = function(df) {
 }
 
 boot_straps = 
-  tibble(strap_number = 1:200) |> 
+  tibble(strap_number = 1:5000) |> 
    mutate(
     strap_sample = map(strap_number, \(i) boot_sample(weather_df)),
     models = map(strap_sample, \(df) lm(tmax ~ tmin + prcp, data = df)),
@@ -158,6 +158,14 @@ r_squared_values|>
   geom_density()+ xlab("r^2") +
   ylab("strap number") +
   ggtitle("The distribution of r^2 in boot result")
+```
+```{r}
+# get the proportion of valid log(estimated beta1*estimated beta2) among 5000
+prop_valid_log =
+  log_product |> 
+  drop_na() 
+fraction = nrow(prop_valid_log)/5000
+fraction
 ```
 
 # Problem 3
