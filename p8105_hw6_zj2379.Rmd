@@ -103,8 +103,6 @@ weather_df =
     tmax = tmax / 10) |>
   select(name, id, everything())
 ```
- We’ll focus on a simple linear regression with tmax as the response with tmin and prcp as the predictors, and are interested in the distribution of two quantities estimated from these data:
-
 ```{r}
 ## construct a simple linear regression 
 slr_weather_df <- weather_df |>
@@ -151,6 +149,9 @@ log_product|>
   ylab("strap number") +
   ggtitle("The distribution of log(estimated beta1*estimated beta2) in boot result")
 ```
+The distribution peaks around -4 on the log scale. The most frequent values of the log product of beta1 and beta2 are near this value. The left tail of the distribution indicates that there are fewer bootstrap samples with a very low product of beta1 and beta2.
+
+
 ```{r}
 r_squared_values|>
   drop_na()|>
@@ -159,6 +160,8 @@ r_squared_values|>
   ylab("strap number") +
   ggtitle("The distribution of r^2 in boot result")
 ```
+The distribution's peak is around 0.91 and pretty symmetric, suggesting that the majority of the bootstrap samples have an r^2 value close to this. The model explains approximately 91% of the variance in the data in most bootstrap samples. 
+
 ```{r}
 # get the proportion of valid log(estimated beta1*estimated beta2) among 5000
 prop_valid_log =
@@ -190,12 +193,12 @@ birthweight=
   )|>
   drop_na()
 ```
-Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
+
 ```{r}
 reg_1=lm(bwt ~ blength + bhead + smoken + wtgain + babysex + delwt + fincome + frace + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppwt +  menarche + gaweeks + smoken, data = birthweight)
 summary(reg_1)
 ```
-
+Use blength, bhead, smoken, wtgain, babysex, delwt, fincome, frace, mheight, momage, mrace, parity, pnumlbw, pnumsga, ppwt, menarche, gaweeks, smoken as predictive varibales to propose a regression model.
 
 ```{r}
 birthweight <- birthweight |>
@@ -208,7 +211,7 @@ ggplot(birthweight, aes(x = fitted_values, y = residuals)) +
   labs(x = "Fitted Values", y = "Residuals") +
   theme_minimal()
 ```
-From the plot, the residuals scatter around 0.
+From the plot, the residuals scatter around 0 evenly.
 
 ```{r}
 reg_2=lm(bwt ~ blength+ gaweeks, data = birthweight)
@@ -272,4 +275,4 @@ cv_results |>
   geom_violin()
 ```
 
-Reg_1 might have the best performance in terms of RMSE because its distribution is lower and tighter, indicating lower and more consistent errors.
+Reg_1 might have the best performance in terms of RMSE because its distribution is lower and tighter, indicating lower and more consistent errors. Additionally, the shape of the violin plot for reg_2 is quite wide in the middle, which suggests greater variability in the RMSE values. The violin plot of reg_3, while having a lower median RMSE than reg_2, still has a higher median RMSE than reg_1. 
